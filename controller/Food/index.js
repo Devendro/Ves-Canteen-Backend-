@@ -102,14 +102,16 @@ exports.searchFoods = async (req, res) => {
             must: condition,
           },
         },
+        size: 10, // Limit the number of results to 10
+        sort: ["_score"], // Sort by relevance
       },
     });
 
-    console.log(results);
-    res.status(200).json(results);
+    res.status(200).json(results?.hits?.hits);
   } catch (error) {
     console.log(error);
     utils.handleError(res, error);
   }
 };
+
 
