@@ -39,14 +39,57 @@ exports.getFoods = async (req, res) => {
     };
 
     let pipeline = [];
+    let compoundQuery = {};
+
+    if (req?.query?.keyword) {
+      compoundQuery = {
+        ...compoundQuery,
+        should: [
+          {
+            text: {
+              path: "name",
+              query: req?.query?.keyword,
+              fuzzy: {},
+            },
+          },
+        ],
+      };
+    }
 
     if (req?.query?.category) {
-      pipeline.push({
-        $match: {
-          category: mongoose.Types.ObjectId(req?.query?.category),
-        },
-      });
+      compoundQuery = {
+        ...compoundQuery,
+        must: [
+          {
+            equals: {
+              path: "category",
+              value: mongoose.Types.ObjectId(req?.query?.category),
+            },
+          },
+        ],
+      };
     }
+
+    if (req?.query?._id) {
+      compoundQuery = {
+        ...compoundQuery,
+        mustNot: [
+          {
+            equals: {
+              path: "_id",
+              value: mongoose.Types.ObjectId(req?.query?._id),
+            },
+          },
+        ],
+      };
+    }
+
+    pipeline.push({
+      $search: {
+        index: "default",
+        compound: compoundQuery,
+      },
+    });
 
     pipeline.push({
       $lookup: {
@@ -65,6 +108,7 @@ exports.getFoods = async (req, res) => {
     );
     res.status(200).json(result);
   } catch (error) {
+    console.log(error);
     utils.handleError(res, error);
   }
 };
@@ -113,5 +157,3 @@ exports.searchFoods = async (req, res) => {
     utils.handleError(res, error);
   }
 };
-
-

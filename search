@@ -1,0 +1,14 @@
+[
+  {
+    $search: {
+      index: "default",
+      text: {
+        query: "vada pav",
+        path: "name",
+        "fuzzy": {
+         "maxEdits": 2
+       }
+      }
+    }
+  }
+]

@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const loadModels = require("../models");
-const DB_URL = "mongodb://localhost:27017/Canteen"
+const DB_URL = "mongodb+srv://vescanteen:vescanteendev@cluster0.bcamwac.mongodb.net/Canteen?retryWrites=true&w=majority&appName=Cluster0"
 // module.exports = (callback) => {
 module.exports = () => {
   const connect = () => {
