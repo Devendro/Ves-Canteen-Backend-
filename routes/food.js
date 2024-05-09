@@ -30,7 +30,7 @@ const uploadStrategy = multer({ storage: storage });
 // Route to create a food item by admin
 router.post(
   "/createFood",
-  // requireAuth,
+  requireAuth,
   trimRequest.all,
   uploadStrategy.single("image"),
   validate.createFood,

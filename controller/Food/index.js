@@ -116,8 +116,8 @@ exports.getFoods = async (req, res) => {
 exports.sendNotification = async (req, res) => {
   try {
     const response = await sendNotification(
-      "ExponentPushToken[mUMHs6JfowXVtRW9eaAow4]",
-      "hello"
+      "ExponentPushToken[Niz_RUAjwt1KexCIe_OYSy]",
+      "hello Sid gadkar"
     );
     return res.status(200).json(response);
   } catch (error) {}
