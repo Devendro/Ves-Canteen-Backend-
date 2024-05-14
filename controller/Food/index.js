@@ -41,6 +41,7 @@ exports.getFoods = async (req, res) => {
     let pipeline = [];
     let compoundQuery = {};
 
+    console.log(req?.query?.keyword)
     if (req?.query?.keyword) {
       compoundQuery = {
         ...compoundQuery,
@@ -100,6 +101,19 @@ exports.getFoods = async (req, res) => {
       },
     });
 
+    pipeline.push(
+      {
+        $addFields: {
+          score: { $meta: "searchScore" }, // you are already adding the field here.
+        },
+      },
+      {
+        $sort: {
+          score: -1, // use the new computed field here.
+        },
+      }
+    );
+
     let aggregatePipeline = foodModel.aggregate(pipeline);
 
     const result = await foodModel.aggregatePaginate(
@@ -125,33 +139,54 @@ exports.sendNotification = async (req, res) => {
 
 exports.searchFoods = async (req, res) => {
   try {
-    var condition = [];
-    if (req?.query?.name) {
-      condition.push({
-        multi_match: {
-          fields: ["name", "description"],
-          query: req.query.name,
-          fuzziness: "AUTO",
-          prefix_length: 3, // Adjust as needed
-          max_expansions: 50, // Adjust as needed
-          operator: "OR",
+    let pipeline = [];
+
+    pipeline.push({
+      $search: {
+        index: "default",
+        compound: {
+          should: [
+            {
+              text: {
+                query: req?.query?.name,
+                path: "name",
+                fuzzy: {},
+              },
+            },
+            {
+              text: {
+                query: req?.query?.name,
+                path: "description",
+                fuzzy: {},
+              },
+            },
+          ],
         },
-      });
-    }
-    const results = await client.search({
-      index: "foods",
-      body: {
-        query: {
-          bool: {
-            must: condition,
-          },
-        },
-        size: 10, // Limit the number of results to 10
-        sort: ["_score"], // Sort by relevance
       },
     });
 
-    res.status(200).json(results?.hits?.hits);
+    pipeline.push(
+      {
+        $project: {
+          name: 1,
+          description: 1,
+          score: { $meta: "searchScore" },
+        },
+      },
+      {
+        $sort: {
+          score: -1, // use the new computed field here.
+        },
+      },
+      {
+        $limit: 10,
+      }
+    );
+
+    let aggregatePipeline = foodModel.aggregate(pipeline);
+
+    const result = await foodModel.aggregatePaginate(aggregatePipeline);
+    res.status(200).json(result);
   } catch (error) {
     console.log(error);
     utils.handleError(res, error);
