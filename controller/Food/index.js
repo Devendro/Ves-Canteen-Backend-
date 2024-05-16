@@ -40,8 +40,6 @@ exports.getFoods = async (req, res) => {
 
     let pipeline = [];
     let compoundQuery = {};
-
-    console.log(req?.query?.keyword)
     if (req?.query?.keyword) {
       compoundQuery = {
         ...compoundQuery,
@@ -92,14 +90,17 @@ exports.getFoods = async (req, res) => {
       },
     });
 
-    pipeline.push({
-      $lookup: {
-        from: "categories",
-        localField: "category",
-        foreignField: "_id",
-        as: "categoryData",
+    pipeline.push(
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "categoryData",
+        },
       },
-    });
+      { $unwind: { path: "$categoryData", preserveNullAndEmptyArrays: true } }
+    );
 
     pipeline.push(
       {
