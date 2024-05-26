@@ -42,6 +42,10 @@ const FoodSchema = new mongoose.Schema(
     available: {
       type: Boolean
     },
+    totalOrders: {
+      default: 0,
+      type: Number,
+    }
   },
   {
     versionKey: false,

@@ -2,10 +2,6 @@ const foodModel = require("../../models/Food");
 const utils = require("../../middleware/utils");
 const mongoose = require("mongoose");
 const { sendNotification } = require("../../middleware/pushNotification");
-var elasticsearch = require("elasticsearch");
-var client = new elasticsearch.Client({
-  hosts: [`${process.env.ELASTIC_HOST}`],
-});
 
 /**
  * Create Food function called by route

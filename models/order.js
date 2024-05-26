@@ -6,18 +6,28 @@ const OrderSchema = new mongoose.Schema(
   {
     orderId: {
       type: String,
+      index: true
     },
     order: [
       {
         orderId: {
           type: String,
+          index: true
         },
         food: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "food",
         },
+        count: {
+          type: Number,
+          default: 1
+        },
+        preparationNote: {
+          type: String
+        },
         orderStatus: {
           type: String,
+          default: "Order Received"
         },
         orderCompleted: {
           type: Boolean,
@@ -43,6 +53,10 @@ const OrderSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    paymentSuccess: {
+      type: Boolean,
+      default: false
+    },
     paymentId: {
       type: String,
     },
@@ -50,7 +64,6 @@ const OrderSchema = new mongoose.Schema(
   {
     versionKey: false,
     timestamps: true,
-    // timestamps: { createdAt: false, updatedAt: false },
     toObject: { virtuals: true },
     toJSON: { virtuals: true },
     collation: { locale: "en" },
