@@ -54,7 +54,7 @@ exports.getFoods = async (req, res) => {
     if (req?.query?.category) {
       compoundQuery = {
         ...compoundQuery,
-        must: [
+        filter: [
           {
             equals: {
               path: "category",
@@ -79,12 +79,27 @@ exports.getFoods = async (req, res) => {
       };
     }
 
-    pipeline.push({
-      $search: {
-        index: "default",
-        compound: compoundQuery,
-      },
-    });
+    if (req?.query?._id || req?.query?.category || req?.query?.keyword) {
+      pipeline.push({
+        $search: {
+          index: "default",
+          compound: compoundQuery,
+        },
+      });
+
+      pipeline.push(
+        {
+          $addFields: {
+            score: { $meta: "searchScore" }, // you are already adding the field here.
+          },
+        },
+        {
+          $sort: {
+            score: -1, // use the new computed field here.
+          },
+        }
+      );
+    }
 
     pipeline.push(
       {
@@ -96,19 +111,6 @@ exports.getFoods = async (req, res) => {
         },
       },
       { $unwind: { path: "$categoryData", preserveNullAndEmptyArrays: true } }
-    );
-
-    pipeline.push(
-      {
-        $addFields: {
-          score: { $meta: "searchScore" }, // you are already adding the field here.
-        },
-      },
-      {
-        $sort: {
-          score: -1, // use the new computed field here.
-        },
-      }
     );
 
     let aggregatePipeline = foodModel.aggregate(pipeline);

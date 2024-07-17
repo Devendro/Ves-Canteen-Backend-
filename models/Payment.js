@@ -18,9 +18,12 @@ const PaymentSchema = new mongoose.Schema(
     paymentStatus: {
       type: Boolean,
     },
-    amout: {
+    amount: {
       type: Number,
     },
+    method: {
+      type: String,
+    }
   },
   {
     versionKey: false,

@@ -24,14 +24,15 @@ exports.createOrder = async (req, res) => {
     // Create order object
     const orderData = {
       orderId: mainOrderId,
+      user: req?.user?._id,
       order: orderItems,
       amount: req.body.amount,
       paymentId: req.body.paymentId,
     };
 
-    // // Save order to the database
+    // Save order to the database
     const newOrder = new orderModel(orderData);
-    await newOrder.save();
+    const response = await newOrder.save();
 
     res
       .status(201)
@@ -49,10 +50,91 @@ exports.updateOrderPaymentStatus = async (req, res) => {
       { orderId, orderId },
       { paymentSuccess, paymentId }
     );
-    console.log(response);
     res.status(201).json({ msg: "Order Status Updated Successfully" });
   } catch (e) {
     console.error(e);
     res.status(500).json({ msg: "Failed to create order", error: e.message });
+  }
+};
+
+exports.getAllOrdersForUser = async (req, res) => {
+  try {
+    const user = req?.user?._id;
+
+    let pipeline = [
+      {
+        $match: {
+          user: user,
+        },
+      },
+      {
+        $unwind: "$order",
+      },
+      {
+        $lookup: {
+          from: "foods",
+          localField: "order.food",
+          foreignField: "_id",
+          as: "order.foodDetails",
+        },
+      },
+      {
+        $unwind: "$order.foodDetails",
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "order.foodDetails.category",
+          foreignField: "_id",
+          as: "order.foodDetails.categoryDetails",
+        },
+      },
+      {
+        $unwind: "$order.foodDetails.categoryDetails",
+      },
+      {
+        $group: {
+          _id: "$_id",
+          orderCompleted: { $first: "$orderCompleted" },
+          orderCanceled: { $first: "$orderCanceled" },
+          paymentSuccess: { $first: "$paymentSuccess" },
+          deleted: { $first: "$deleted" },
+          orderId: { $first: "$orderId" },
+          user: { $first: "$user" },
+          orders: { $push: "$order" },
+          amount: { $first: "$amount" },
+          createdAt: { $first: "$createdAt" },
+          updatedAt: { $first: "$updatedAt" },
+          paymentId: { $first: "$paymentId" },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          orderCompleted: 1,
+          orderCanceled: 1,
+          paymentSuccess: 1,
+          deleted: 1,
+          orderId: 1,
+          user: 1,
+          orders: 1,
+          amount: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          paymentId: 1,
+        },
+      },
+      {
+        $sort: {
+          createdAt: -1,
+        },
+      },
+    ];
+
+    const aggregatePipeline = orderModel.aggregate(pipeline);
+    const result = await orderModel.aggregatePaginate(aggregatePipeline);
+    res.status(200).json(result);
+  } catch (e) {
+    console.log(e);
   }
 };

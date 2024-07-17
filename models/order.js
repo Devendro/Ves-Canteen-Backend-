@@ -8,6 +8,10 @@ const OrderSchema = new mongoose.Schema(
       type: String,
       index: true
     },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "users",
+    },
     order: [
       {
         orderId: {
@@ -27,7 +31,7 @@ const OrderSchema = new mongoose.Schema(
         },
         orderStatus: {
           type: String,
-          default: "Order Received"
+          default: "Received"
         },
         orderCompleted: {
           type: Boolean,

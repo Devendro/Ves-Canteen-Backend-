@@ -28,4 +28,14 @@ router.put(
   controller.updateOrderPaymentStatus
 );
 
+/*
+ * get order of user from database
+ */
+router.get(
+  "/getAllOrdersForUser",
+  requireAuth,
+  trimRequest.all,
+  controller.getAllOrdersForUser
+);
+
 module.exports = router;
