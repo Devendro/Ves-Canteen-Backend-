@@ -6,7 +6,7 @@ const aggregatePaginate = require("mongoose-aggregate-paginate-v2");
 const mongoose_delete = require("mongoose-delete");
 const UserSchema = new mongoose.Schema(
   {
-    name:{
+    name: {
       type: String,
     },
     phone: {
@@ -49,6 +49,9 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    notificationToken: {
+      type: String
+    }
   },
   {
     versionKey: false,

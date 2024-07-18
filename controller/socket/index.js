@@ -5,8 +5,7 @@ module.exports = () => {
         console.log('connected user-----', socket.id)
 
         socket.on("disconnect", async () => {
-            console.log("disconnected", socket.id);
-            await updateViewFile(socket.id, "disconnect");
+            console.log("disconnected", socket.id)
         });
 
     })

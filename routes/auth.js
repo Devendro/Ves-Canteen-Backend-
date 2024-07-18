@@ -39,6 +39,17 @@ router.post(
   controller.changePassword
 );
 
+/*
+ * change Password route
+ */
+router.put(
+  "/updateNotificationToken",
+  requireAuth,
+  trimRequest.all,
+  controller.updateNotificationToken
+);
+
+
 // /*
 //  * logout route
 //  */

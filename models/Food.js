@@ -8,7 +8,7 @@ const FoodSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      es_indexed: true
+      index: true,
     },
     category: {
       type: mongoose.Schema.Types.ObjectId,
@@ -16,7 +16,7 @@ const FoodSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      es_indexed: true
+      index: true,
     },
     image: {
       type: String,
@@ -32,6 +32,7 @@ const FoodSchema = new mongoose.Schema(
     },
     veg: {
       type: Boolean,
+      index: true,
     },
     preparation_time: {
       type: Number,

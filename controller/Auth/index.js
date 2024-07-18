@@ -38,7 +38,10 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    const userExist = await User.findOne({ email: req?.body?.email });
+    const userExist = await User.findOneAndUpdate(
+      { email: req?.body?.email },
+      { notificationToken: req?.body?.notificationToken }
+    );
     if (userExist) {
       const isPasswordMatch = await auth.checkPassword(
         req?.body?.password,
@@ -101,3 +104,17 @@ exports.changePassword = async (req, res) => {
     return res.status(400).json({ msg: "Invalid Credentials" });
   }
 };
+
+exports.updateNotificationToken = async (req, res) => {
+  try {
+    const user = req?.user
+    if (!user) {
+      return res.status(400).json({ msg: "Not Logged In" });
+    }
+
+    await User.findByIdAndUpdate(
+      mongoose.Types.ObjectId(user?._id),
+      { notificationToken: req?.body?.notificationToken }
+    )
+  } catch (e) { }
+}

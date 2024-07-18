@@ -3,7 +3,7 @@ const { Expo } = require("expo-server-sdk")
 exports.sendNotification = async (expoPushToken, data) => {
   const expo = new Expo({ accessToken: "RymI-vYmfD5MW3UB4SYqt79N-6n7LIcQMmBm4irj" });
 
-  const chunks = expo.chunkPushNotifications([{ to: expoPushToken, title: "Food Prepared", subtitle: "Subtitle", body: "Hello Order Prepared", useFcmV1: false }]);
+  const chunks = expo.chunkPushNotifications([{ to: expoPushToken, title: data?.title, body: data?.body, useFcmV1: false }]);
   const tickets = [];
 
   for (const chunk of chunks) {

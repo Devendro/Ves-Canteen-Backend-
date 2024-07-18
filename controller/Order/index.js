@@ -1,6 +1,8 @@
 const orderModel = require("../../models/Order");
 const utils = require("../../middleware/utils");
 const crypto = require("crypto");
+const OrderLog = require("../../models/OrderLog");
+const { sendNotification } = require("../../middleware/pushNotification");
 
 exports.createOrder = async (req, res) => {
   try {
@@ -138,3 +140,123 @@ exports.getAllOrdersForUser = async (req, res) => {
     console.log(e);
   }
 };
+
+
+exports.getAllOrdersForChef = async (req, res) => {
+  try {
+    let pipeline = [
+      {
+        $unwind: "$order",
+      },
+      {
+        $lookup: {
+          from: "foods",
+          localField: "order.food",
+          foreignField: "_id",
+          as: "order.foodDetails",
+        },
+      },
+      {
+        $unwind: "$order.foodDetails",
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "order.foodDetails.category",
+          foreignField: "_id",
+          as: "order.foodDetails.categoryDetails",
+        },
+      },
+      {
+        $unwind: "$order.foodDetails.categoryDetails",
+      },
+      {
+        $group: {
+          _id: "$_id",
+          orderCompleted: { $first: "$orderCompleted" },
+          orderCanceled: { $first: "$orderCanceled" },
+          paymentSuccess: { $first: "$paymentSuccess" },
+          deleted: { $first: "$deleted" },
+          orderId: { $first: "$orderId" },
+          user: { $first: "$user" },
+          order: { $push: "$order" },
+          amount: { $first: "$amount" },
+          createdAt: { $first: "$createdAt" },
+          updatedAt: { $first: "$updatedAt" },
+          paymentId: { $first: "$paymentId" },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          orderCompleted: 1,
+          orderCanceled: 1,
+          paymentSuccess: 1,
+          deleted: 1,
+          orderId: 1,
+          user: 1,
+          order: 1,
+          amount: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          paymentId: 1,
+        },
+      },
+      {
+        $sort: {
+          createdAt: -1,
+        },
+      },
+    ];
+
+    const aggregatePipeline = orderModel.aggregate(pipeline);
+    const result = await orderModel.aggregatePaginate(aggregatePipeline);
+    res.status(200).json(result);
+  } catch (e) {
+    console.log(e);
+  }
+};
+
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    const orderData = req?.body
+    const user = req?.user
+    const order = await orderModel.findOneAndUpdate({ "order._id": orderData.orderId }, { $set: { "order.$.orderStatus": orderData?.newStatus } }, { new: true })
+    if (order) {
+      global.io.emit("orderStatusUpdate", { mainOrderId: order?._id, orderId: orderData.orderId, orderStatus: orderData?.newStatus, user: order?.user })
+      const orderLog = new OrderLog({
+        orderId: orderData.orderId,
+        mainOrderId: order?._id,
+        user: order.user,
+        chef: user?._id,
+        log: orderData?.newStatus,
+        completed: orderData?.completed == "true" || orderData?.completed == true ? true : false
+      })
+
+      let body = "";
+      switch (orderData?.newStatus) {
+        case "Preparing":
+          body = "Your food is being prepared.";
+          break;
+        
+        case "Complete":
+          body = "Your order is ready for pickup.";
+          break;
+        
+        case "Collected":
+          body = "Your order has been collected. Enjoy your meal!";
+          break;
+        
+        default:
+          console.log("Invalid order status.");
+      }
+      await sendNotification(
+        user?.notificationToken,
+        {title: "Order " + orderData?.newStatus, body: body} 
+      );
+      await orderLog.save();
+    }
+    res.status(201).json(order)
+  }
+  catch (e) { }
+}

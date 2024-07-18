@@ -35,7 +35,7 @@ exports.getFoods = async (req, res) => {
     };
 
     let pipeline = [];
-    let compoundQuery = {};
+    let compoundQuery = {filter: [], must: []};
     if (req?.query?.keyword) {
       compoundQuery = {
         ...compoundQuery,
@@ -52,17 +52,12 @@ exports.getFoods = async (req, res) => {
     }
 
     if (req?.query?.category) {
-      compoundQuery = {
-        ...compoundQuery,
-        filter: [
-          {
-            equals: {
-              path: "category",
-              value: mongoose.Types.ObjectId(req?.query?.category),
-            },
-          },
-        ],
-      };
+      compoundQuery.filter.push({
+        equals: {
+          path: "category",
+          value: mongoose.Types.ObjectId(req?.query?.category),
+        },
+      });
     }
 
     if (req?.query?._id) {
@@ -78,6 +73,15 @@ exports.getFoods = async (req, res) => {
         ],
       };
     }
+
+    // if (req?.query?.veg === "true" || req?.query?.veg === true) {
+    //   compoundQuery.must.push({
+    //     equals: {
+    //       path: "veg",
+    //       value: true,
+    //     },
+    //   });
+    // }
 
     if (req?.query?._id || req?.query?.category || req?.query?.keyword) {
       pipeline.push({
@@ -115,6 +119,7 @@ exports.getFoods = async (req, res) => {
 
     let aggregatePipeline = foodModel.aggregate(pipeline);
 
+    
     const result = await foodModel.aggregatePaginate(
       aggregatePipeline,
       options
@@ -133,7 +138,7 @@ exports.sendNotification = async (req, res) => {
       "hello Sid gadkar"
     );
     return res.status(200).json(response);
-  } catch (error) {}
+  } catch (error) { }
 };
 
 exports.searchFoods = async (req, res) => {

@@ -38,4 +38,26 @@ router.get(
   controller.getAllOrdersForUser
 );
 
+
+/*
+ * get order for chef from database
+ */
+router.get(
+  "/getAllOrdersForChef",
+  // requireAuth,
+  trimRequest.all,
+  controller.getAllOrdersForChef
+);
+
+
+/*
+ * update order status 
+ */
+router.put(
+  "/updateOrderStatus",
+  requireAuth,
+  trimRequest.all,
+  controller.updateOrderStatus
+);
+
 module.exports = router;
