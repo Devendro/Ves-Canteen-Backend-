@@ -1,5 +1,4 @@
 const orderModel = require("../../models/Order");
-const utils = require("../../middleware/utils");
 const crypto = require("crypto");
 const OrderLog = require("../../models/OrderLog");
 const { sendNotification } = require("../../middleware/pushNotification");
