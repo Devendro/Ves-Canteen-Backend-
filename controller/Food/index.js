@@ -29,61 +29,47 @@ exports.createFood = async (req, res) => {
  */
 exports.getFoods = async (req, res) => {
   try {
-    const options = {
-      page: req?.query.page || 1,
-      limit: req?.query?.limit || 10,
-    };
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
     let pipeline = [];
-    let compoundQuery = {filter: [], must: []};
-    if (req?.query?.keyword) {
-      compoundQuery = {
-        ...compoundQuery,
-        should: [
-          {
-            text: {
-              path: "name",
-              query: req?.query?.keyword,
-              fuzzy: {},
-            },
+    let compoundQuery = { filter: [], must: [] };
+
+    if (req.query.keyword) {
+      compoundQuery.should = [
+        {
+          text: {
+            path: "name",
+            query: req.query.keyword,
+            fuzzy: {},
           },
-        ],
-      };
+        },
+      ];
     }
 
-    if (req?.query?.category) {
+    if (req.query.category) {
       compoundQuery.filter.push({
         equals: {
           path: "category",
-          value: mongoose.Types.ObjectId(req?.query?.category),
+          value: mongoose.Types.ObjectId(req.query.category),
         },
       });
     }
 
-    if (req?.query?._id) {
-      compoundQuery = {
-        ...compoundQuery,
-        mustNot: [
-          {
-            equals: {
-              path: "_id",
-              value: mongoose.Types.ObjectId(req?.query?._id),
-            },
+    if (req.query._id) {
+      compoundQuery.mustNot = [
+        {
+          equals: {
+            path: "_id",
+            value: mongoose.Types.ObjectId(req.query._id),
           },
-        ],
-      };
+        },
+      ];
     }
 
-    // if (req?.query?.veg === "true" || req?.query?.veg === true) {
-    //   compoundQuery.must.push({
-    //     equals: {
-    //       path: "veg",
-    //       value: true,
-    //     },
-    //   });
-    // }
-
-    if (req?.query?._id || req?.query?.category || req?.query?.keyword) {
+    // If there are any query parameters, use the $search aggregation stage.
+    if (req.query._id || req.query.category || req.query.keyword) {
       pipeline.push({
         $search: {
           index: "default",
@@ -94,12 +80,12 @@ exports.getFoods = async (req, res) => {
       pipeline.push(
         {
           $addFields: {
-            score: { $meta: "searchScore" }, // you are already adding the field here.
+            score: { $meta: "searchScore" },
           },
         },
         {
           $sort: {
-            score: -1, // use the new computed field here.
+            score: -1,
           },
         }
       );
@@ -117,19 +103,45 @@ exports.getFoods = async (req, res) => {
       { $unwind: { path: "$categoryData", preserveNullAndEmptyArrays: true } }
     );
 
-    let aggregatePipeline = foodModel.aggregate(pipeline);
+    // Clone the pipeline for counting total documents without pagination.
+    const totalDocsPipeline = [...pipeline];
+    totalDocsPipeline.push({ $count: "totalCount" });
 
-    
-    const result = await foodModel.aggregatePaginate(
-      aggregatePipeline,
-      options
-    );
-    res.status(200).json(result);
+    // Execute the aggregation pipeline with pagination.
+    const result = await foodModel.aggregate(pipeline).skip(skip).limit(limit);
+
+    // Execute the total documents count pipeline.
+    const totalDocsResult = await foodModel.aggregate(totalDocsPipeline);
+    const totalDocs = totalDocsResult[0]?.totalCount || 0;
+
+    // Calculate pagination values
+    const totalPages = Math.ceil(totalDocs / limit);
+    const pagingCounter = skip + 1;
+    const hasPrevPage = page > 1;
+    const hasNextPage = page < totalPages;
+    const prevPage = hasPrevPage ? page - 1 : null;
+    const nextPage = hasNextPage ? page + 1 : null;
+
+    res.status(200).json({
+      totalDocs,
+      limit,
+      page,
+      totalPages,
+      pagingCounter,
+      hasPrevPage,
+      hasNextPage,
+      offset: skip,
+      prevPage,
+      nextPage,
+      data: result,
+    });
   } catch (error) {
     console.log(error);
     utils.handleError(res, error);
   }
 };
+
+
 
 exports.sendNotification = async (req, res) => {
   try {
@@ -143,8 +155,13 @@ exports.sendNotification = async (req, res) => {
 
 exports.searchFoods = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
     let pipeline = [];
 
+    // Add the $search stage to the pipeline
     pipeline.push({
       $search: {
         index: "default",
@@ -152,14 +169,14 @@ exports.searchFoods = async (req, res) => {
           should: [
             {
               text: {
-                query: req?.query?.name,
+                query: req.query.name,
                 path: "name",
                 fuzzy: {},
               },
             },
             {
               text: {
-                query: req?.query?.name,
+                query: req.query.name,
                 path: "description",
                 fuzzy: {},
               },
@@ -169,6 +186,7 @@ exports.searchFoods = async (req, res) => {
       },
     });
 
+    // Add $project and $sort stages
     pipeline.push(
       {
         $project: {
@@ -179,18 +197,46 @@ exports.searchFoods = async (req, res) => {
       },
       {
         $sort: {
-          score: -1, // use the new computed field here.
+          score: -1, // Sort by search score
         },
-      },
-      {
-        $limit: 10,
       }
     );
 
-    let aggregatePipeline = foodModel.aggregate(pipeline);
+    // Manually apply pagination with $skip and $limit
+    pipeline.push(
+      { $skip: skip },
+      { $limit: limit }
+    );
 
-    const result = await foodModel.aggregatePaginate(aggregatePipeline);
-    res.status(200).json(result);
+    // Execute the aggregation pipeline
+    const result = await foodModel.aggregate(pipeline);
+
+    // Count total documents without applying skip and limit
+    const totalResultsPipeline = pipeline.slice(0, -2); // Remove $skip and $limit for total count
+    totalResultsPipeline.push({ $count: "total" });
+    const totalResults = await foodModel.aggregate(totalResultsPipeline);
+
+    const totalDocs = totalResults[0]?.total || 0;
+    const totalPages = Math.ceil(totalDocs / limit);
+    const pagingCounter = skip + 1;
+    const hasPrevPage = page > 1;
+    const hasNextPage = page < totalPages;
+    const prevPage = hasPrevPage ? page - 1 : null;
+    const nextPage = hasNextPage ? page + 1 : null;
+
+    res.status(200).json({
+      totalDocs,
+      limit,
+      page,
+      totalPages,
+      pagingCounter,
+      hasPrevPage,
+      hasNextPage,
+      offset: skip,
+      prevPage,
+      nextPage,
+      data: result,
+    });
   } catch (error) {
     console.log(error);
     utils.handleError(res, error);
