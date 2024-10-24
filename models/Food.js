@@ -62,7 +62,7 @@ FoodSchema.plugin(mongoosePaginate);
 FoodSchema.plugin(aggregatePaginate);
 FoodSchema.plugin(mongoose_delete);
 FoodSchema.plugin(mongoosastic, {
-  clientOptions: { nodes: [`${process.env.ELASTIC_HOST}`] },
+  clientOptions: { nodes: [`http://localhost:9200`] },
   type: '_food'
 })
 module.exports = mongoose.model("Food", FoodSchema);

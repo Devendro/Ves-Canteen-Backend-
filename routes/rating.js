@@ -18,5 +18,11 @@ router.post(
     controller.createRating
 );
 
+router.get(
+    "/getUserRatings",
+    requireAuth,
+    trimRequest.all,
+    controller.getUserRatings
+);
 
 module.exports = router;

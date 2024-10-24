@@ -39,7 +39,6 @@ exports.createOrder = async (req, res) => {
       .status(201)
       .json({ msg: "Order Created Successfully", orderId: newOrder.orderId });
   } catch (e) {
-    console.error(e);
     res.status(500).json({ msg: "Failed to create order", error: e.message });
   }
 };
