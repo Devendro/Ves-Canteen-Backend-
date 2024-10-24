@@ -133,7 +133,7 @@ exports.getFoods = async (req, res) => {
       offset: skip,
       prevPage,
       nextPage,
-      data: result,
+      docs: result,
     });
   } catch (error) {
     console.log(error);
@@ -235,7 +235,7 @@ exports.searchFoods = async (req, res) => {
       offset: skip,
       prevPage,
       nextPage,
-      data: result,
+      docs: result,
     });
   } catch (error) {
     console.log(error);
