@@ -32,7 +32,11 @@ exports.register = async (req, res) => {
     res.status(400).json({ error: { msg: "user already exist" } });
   } else {
     const response = await User.create(req?.body);
-    res.status(201).json({ msg: "Account Created Succesfully" });
+    const data = {
+      ...response.toObject(),
+      token: generateToken(response?._id, "user"),
+    };
+    res.status(201).json({ msg: "Account Created Succesfully", data: data });
   }
 };
 
@@ -60,10 +64,10 @@ exports.login = async (req, res) => {
             .json({ error: { msg: "Account is Inactive" } });
         }
       } else {
-        return res.status(400).json({ msg: "Invalid Credentials" });
+        return res.status(400).json({errors: { msg: "Invalid Credentials" }});
       }
     } else {
-      return res.status(400).json({ msg: "Invalid Credentials" });
+      return res.status(400).json({errors: { msg: "Invalid Credentials" }});
     }
   } catch (error) {
     console.log(error);
