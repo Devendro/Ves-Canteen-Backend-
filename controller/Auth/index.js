@@ -109,6 +109,39 @@ exports.changePassword = async (req, res) => {
   }
 };
 
+exports.chefLogin = async (req, res) => {
+  try {
+    const userExist = await User.findOne(
+      { email: req?.body?.email, role: "chef" },
+    );
+    if (userExist) {
+      const isPasswordMatch = await auth.checkPassword(
+        req?.body?.password,
+        userExist
+      );
+      if (isPasswordMatch) {
+        if (userExist?.accountStatus) {
+          const data = {
+            ...userExist.toObject(),
+            token: generateToken(userExist?._id, "user"),
+          };
+          return res.status(200).json({ msg: "Login Succesfull", data: data });
+        } else {
+          return res
+            .status(400)
+            .json({ error: { msg: "Account is Inactive" } });
+        }
+      } else {
+        return res.status(400).json({errors: { msg: "Invalid Credentials" }});
+      }
+    } else {
+      return res.status(400).json({errors: { msg: "Invalid Credentials" }});
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 exports.updateNotificationToken = async (req, res) => {
   try {
     const user = req?.user

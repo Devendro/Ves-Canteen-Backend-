@@ -29,6 +29,11 @@ router.post(
 router.post("/login", trimRequest.all, validate.login, controller.login);
 
 /*
+ * Chef Login route
+ */
+router.post("/chefLogin", trimRequest.all, validate.login, controller.chefLogin);
+
+/*
  * change Password route
  */
 router.post(
