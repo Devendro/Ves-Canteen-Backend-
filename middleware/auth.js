@@ -1,7 +1,8 @@
 const crypto = require("crypto");
 const algorithm = "aes-256-cbc";
 const utils = require("../middleware/utils");
-const secret = "VesitCanteen";
+const secret = crypto.createHash("sha256").update("VesitCanteen").digest(); // 32-byte key
+const iv = crypto.randomBytes(16); // 16-byte IV
 module.exports = {
   /**
    * Checks is password matches
@@ -28,21 +29,24 @@ module.exports = {
    * Encrypts text
    * @param {string} text - text to encrypt
    */
-   encrypt(text) {
-    const cipher = crypto.createCipher(algorithm, secret);
+  encrypt(text) {
+    const cipher = crypto.createCipheriv(algorithm, secret, iv);
     let crypted = cipher.update(text, "utf8", "hex");
     crypted += cipher.final("hex");
-    return crypted;
+    // Include IV in output so it can be used during decryption
+    return iv.toString("hex") + ":" + crypted;
   },
 
   /**
    * Decrypts text
    * @param {string} text - text to decrypt
    */
-  decrypt(text) {
-    const decipher = crypto.createDecipher(algorithm, secret);
+  decrypt(encryptedText) {
+    const [ivHex, encrypted] = encryptedText.split(":");
+    const ivBuffer = Buffer.from(ivHex, "hex");
+    const decipher = crypto.createDecipheriv(algorithm, secret, ivBuffer);
     try {
-      let dec = decipher.update(text, "hex", "utf8");
+      let dec = decipher.update(encrypted, "hex", "utf8");
       dec += decipher.final("utf8");
       return dec;
     } catch (err) {

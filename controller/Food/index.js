@@ -29,6 +29,8 @@ exports.createFood = async (req, res) => {
  */
 exports.getFoods = async (req, res) => {
   try {
+    const userId = req?.query?.user
+    console.log(userId)
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
@@ -102,6 +104,48 @@ exports.getFoods = async (req, res) => {
       },
       { $unwind: { path: "$categoryData", preserveNullAndEmptyArrays: true } }
     );
+
+    // Check if food item is in user's favorites
+    if (userId) {
+      console.log("wewere")
+      pipeline.push({
+        $lookup: {
+          from: "favorites", // Assuming "favorites" is the name of your separate collection
+          let: { food: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$user", mongoose.Types.ObjectId(userId)] },
+                    { $eq: ["$food", "$$food"] }
+                  ]
+                }
+              }
+            },
+            { $project: { _id: 0, foodId: 1 } }
+          ],
+          as: "likedData"
+        }
+      });
+
+      // Add a liked field based on whether there's a match in likedData
+      pipeline.push({
+        $addFields: {
+          liked: { $gt: [{ $size: "$likedData" }, 0] }
+        }
+      });
+
+      // Remove likedData field as it is no longer needed
+      pipeline.push({ $unset: "likedData" });
+    } else {
+      // If user is not authenticated, set liked as false for all items
+      pipeline.push({
+        $addFields: {
+          liked: false
+        }
+      });
+    }
 
     // Clone the pipeline for counting total documents without pagination.
     const totalDocsPipeline = [...pipeline];
